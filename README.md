@@ -39,7 +39,7 @@ Este pipeline automatiza la **extracción** de listados y detalles de proyectos 
    - `ScraperBase` define la interfaz genérica.
    - `GenericListParser` y `GenericDetailParser` para parseo configurable.
    - `DynamicScraper` orquesta fetch, parse y control de duplicados.
-2. **Proxy Manager** (`src/network/`):
+2. **Proxy Manager** (`src/scrapers/network/`):
    - Gestión y validación de proxies gratuitos.
    - Rotación de User‑Agents y lógica de retries con tenacity.
 3. **Orquestación (Airflow)** (`dags/`):
@@ -66,7 +66,7 @@ Este pipeline automatiza la **extracción** de listados y detalles de proyectos 
 │   └── classifier.yml
 ├── src/
 │   ├── scrapers/             # Implementaciones de ScraperBase
-│   ├── network/              # Proxy Manager y HTTP Client
+│       ├── network/          # Proxy Manager y HTTP Client
 │   ├── classifier.py         # Lógica de clasificación sectorial
 │   └── storage.py            # Adaptadores y funciones de upsert
 ├── test/                     # Pruebas unitarias y fixtures
@@ -81,15 +81,15 @@ Este pipeline automatiza la **extracción** de listados y detalles de proyectos 
 
 - Docker ≥ 20.10 y Docker Compose ≥ 1.29
 - Make
-- Python 3.10 (para desarrollo local)
+- Python 3.9 (para desarrollo local)
 - Variables de entorno definidas en `.env`
 
 ## Configuración
 
 1. Clona el repositorio:
    ```bash
-   git clone <url-del-repo>
-   cd <repo>
+   git clone https://github.com/lph9l/scraping-datapipeline.git
+   cd scraping-datapipeline
    ```
 2. Copia el ejemplo de variables:
    ```bash
@@ -99,7 +99,6 @@ Este pipeline automatiza la **extracción** de listados y detalles de proyectos 
    ```dotenv
    COUNTRY=colombia        # o "peru"
    GEMINI_API_KEY=<tu_api_key>
-   AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://user:pass@postgres/db
    ```
 
 ## Instalación y Despliegue
@@ -125,15 +124,19 @@ docker-compose run --rm webserver \
 ## Uso del Pipeline
 
 1. Accede a la interfaz de Airflow en `http://localhost:8080`.
-2. Trigger manual del DAG `master_etl` o espera su ejecución programada.
-3. Revisa logs y métricas en Airflow, Slack y Grafana.
-4. Consulta datos almacenados en PostgreSQL via `psql` o pgAdmin.
+2. Crea una variable de entorno de Airflow con:
+   ```dotenv
+   COUNTRY=colombia        # o "peru"
+   ```
+3. Trigger manual del DAG `master_etl` o espera su ejecución programada.
+4. Revisa logs, métricas en Airflow y estado de los dags.
+5. Consulta datos almacenados en PostgreSQL via `psql` o pgAdmin.
 
 ## Pruebas y Calidad de Código
 
 Ejecuta el suite de tests:
 ```bash
-pytest --cov=src
+pytest -q
 ```
 Se utilizan:
 - **pytest** para pruebas unitarias.
@@ -153,5 +156,4 @@ Se utilizan:
 Este proyecto está bajo la [Licencia MIT](LICENSE).
 
 ---
-*Generado automáticamente basado en la documentación técnica del pipeline de scraping de proyectos de ley en LATAM.*
 
