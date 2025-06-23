@@ -1,0 +1,47 @@
+gemini:
+  api_key_env: GEMINI_API_KEY
+  model: "gemini-2.5-flash"
+  batch_size: 20
+  cache_path: "/opt/airflow/cache/classifier_cache.json"
+
+categories:
+  - minero-energético
+  - servicios
+  - tecnología
+  - agricultura
+  - manufactura
+  - transporte
+  - salud
+  - educación
+  - telecomunicaciones
+  - construcción
+  - turismo
+  - financiero
+  - alimentos
+  - otros
+
+rules:
+  - pattern: "miner[ií]a|oro|gas|petr[oó]leo"
+    category: "minero-energético"
+  - pattern: "software|tecnolog"
+    category: "tecnología"
+  - pattern: "caf[eé]|agricultura"
+    category: "agricultura"
+  - pattern: "servicio"
+    category: "servicios"
+  - pattern: "transport"
+    category: "transporte"
+  - pattern: "salud"
+    category: "salud"
+  - pattern: "educaci[oó]n|educ"
+    category: "educación"
+  - pattern: "financ"
+    category: "financiero"
+  - pattern: "aliment"
+    category: "alimentos"
+  - pattern: "CREACI[ÓO]N.*DISTRITO|DISTRITO"
+    category: "construcción"
+  - pattern: "(?i)tratado.*transpacífico|tratado"
+    category: "financiero"
+  - pattern: "(?i)carretera|infraestructura"
+    category: "transporte"

@@ -1,0 +1,120 @@
+portal:
+  domain: "https://www.camara.gov.co"
+  base_url: "https://www.camara.gov.co/secretaria/proyectos-de-ley"
+
+concurrency:
+  start_page: 5
+  max_page: 100
+  detail: 20
+
+request:
+  timeout: 15
+
+retry:
+  attempts: 3
+  backoff:
+    type: exponential      # opciones: exponential | fixed
+    multiplier: 1         # para exponential: base del factor
+    max_delay: 30         # retardo máximo entre reintentos
+    jitter: true          # añade jitter aleatorio
+
+pipeline:
+  - name: list
+    type: list
+    parser: GenericListParser
+    source: base_url
+    max_pages: 2
+    concurrency: start_page
+
+  - name: detail
+    type: detail
+    parser: GenericDetailParser
+    input_key: detail_url
+    concurrency: detail
+
+selectors:
+  list:
+    row_selector: "tr"
+    cell_selector: "td"
+    detail_link_selector: "td:nth-child(3) a"
+    detail_link_exclude:
+      href_suffix: ".pdf"
+      text:        "ver documento"
+    title_regex: 'Título:\s*“(.+?)”'
+    fields:
+      no_camara:   "td:nth-child(1)"
+      no_senado:   "td:nth-child(2)"
+      proyecto:    "td:nth-child(3)"
+      tipo:        "td:nth-child(4)"
+      autor:       "td:nth-child(5)"
+      estado:      "td:nth-child(6)"
+      comision:    "td:nth-child(7)"
+      origen:      "td:nth-child(8)"
+      legislatura: "td:nth-child(9)"
+    hash:
+      key: row_hash
+      fields:
+        - no_camara
+        - no_senado
+        - proyecto
+        - detail_url
+
+  detail:
+    fields:
+      documentos:
+        xpath:      "//a[contains(translate(text(),'VER DOCUMENTO','ver documento'),'ver documento') or contains(@href,'.pdf')]"
+        attr:       "href"
+        label_attr: "text"
+        multiple:   true
+      titulo_detalle:
+        xpath: "//h1/text()"
+      fecha_camara:
+        find_all: true
+        regex:     '([0-9]{4}-[0-9]{2}-[0-9]{2})'
+        index:     0
+      fecha_senado:
+        find_all: true
+        regex:     '([0-9]{4}-[0-9]{2}-[0-9]{2})'
+        index:     1
+      objeto:
+        regex:      'Objeto de proyecto:\s*(.*?)Observaciones:'
+      observaciones:
+        regex:      'Observaciones:\s*(.*?)(?:\n\n|$)'
+
+
+storage:
+  raw:
+    table: proyectos_raw
+    primary_key: row_hash
+    lookup_key: no_camara
+    columns:
+      no_camara:     TEXT
+      row_hash:      TEXT NOT NULL
+      last_seen:     TIMESTAMP NOT NULL DEFAULT NOW()
+  final:
+    table: proyectos
+    primary_key: row_hash
+    lookup_key: no_camara
+    columns:
+      no_camara:     TEXT
+      no_senado:     TEXT
+      proyecto:      TEXT
+      tipo:          TEXT
+      autor:         TEXT
+      estado:        TEXT
+      comision:      TEXT
+      origen:        TEXT
+      legislatura:   TEXT
+      titulo:        TEXT
+      fecha_cam:     DATE
+      fecha_sen:     DATE
+      objeto:        TEXT
+      observaciones: TEXT
+      documentos:    JSONB
+      sector:        TEXT
+      row_hash:      TEXT
+
+
+classifier:
+  titulo: titulo
+  detalle: objeto

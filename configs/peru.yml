@@ -1,0 +1,108 @@
+portal:
+  domain: "https://www2.congreso.gob.pe"
+  base_url: "https://www2.congreso.gob.pe/Sicr/TraDocEstProc/CLProLey2011.nsf/Local%20Por%20Numero%20Inverso?OpenView"
+
+concurrency:
+  start_page: 1
+  max_page: 1
+  detail: 20
+
+request:
+  timeout: 15
+
+retry:
+  attempts: 3
+  backoff:
+    type: exponential
+    multiplier: 1
+    max_delay: 30
+    jitter: true
+
+pipeline:
+  - name: list
+    type: list
+    parser: GenericListParser
+    source: base_url
+    max_pages: 1
+    concurrency: start_page
+
+  - name: detail
+    type: detail
+    parser: GenericDetailParser
+    input_key: detail_url
+    concurrency: detail
+
+selectors:
+  list:
+    row_selector: "table[cellspacing='0'] tr"
+    cell_selector: "td"
+    detail_link_selector: "td:nth-child(1) a"
+    detail_link_exclude:
+      href_suffix: ".pdf"
+    title_regex: ''
+    fields:
+      numero:           "td:nth-child(2)"
+      fec_ult_reg:      "td:nth-child(3)"
+      fec_presentacion: "td:nth-child(4)"
+      estado:           "td:nth-child(5)"
+      titulo:           "td:nth-child(6)"
+    hash:
+      key: row_hash
+      fields:
+        - numero
+        - titulo
+        - estado
+        - detail_url
+
+  detail:
+    fields:
+      titulo_detalle:
+        xpath: "//input[@name='TitIni']/@value"
+      sumilla:
+        xpath: "//input[@name='SumIni']/@value"
+      autores:
+        xpath: "//input[@name='NomCongre']/@value"
+      fecha_presentacion_detalle:
+        xpath: "//input[@name='FecPres']/@value"
+        regex: "([0-9]{2}/[0-9]{2}/[0-9]{4})"
+      estado_detalle:
+        xpath: "//input[@name='CodUltEsta']/@value"
+      expediente_url:
+        xpath: "//a[contains(normalize-space(.),'Ver Expediente Digital')]/@href"
+      documentos:
+        xpath: "//a[contains(@href,'.pdf')]/@href"
+        multiple: true
+
+storage:
+  raw:
+    table: proyectos_peru_raw
+    primary_key: row_hash
+    lookup_key: numero
+    columns:
+      numero:         TEXT
+      row_hash:       TEXT NOT NULL
+      last_seen:      TIMESTAMP NOT NULL DEFAULT NOW()
+
+  final:
+    table: proyectos_peru
+    primary_key: row_hash
+    lookup_key: numero
+    columns:
+      numero:                   TEXT
+      fec_ult_reg:              DATE
+      fec_presentacion_lista:   DATE
+      estado:                   TEXT
+      titulo:                   TEXT
+      titulo_detalle:           TEXT
+      sumilla:                  TEXT
+      autores:                  TEXT
+      fecha_presentacion_detalle: DATE
+      estado_detalle:           TEXT
+      documentos:               JSONB
+      sector:                   TEXT
+      row_hash:                 TEXT
+
+
+classifier:
+  titulo: titulo
+  detalle: sumilla

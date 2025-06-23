@@ -1,0 +1,8 @@
+selectolax
+aiohttp
+tenacity
+lxml
+PyYAML
+psycopg2-binary
+requests
+google-genai
